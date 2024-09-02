@@ -9,7 +9,7 @@ export default defineConfig({
     registerType: 'prompt',
     manifest: {
       name: "React-vite-app",
-      short_name: "react-vite-app",
+      short_name: "V7",
       description: "I am a simple vite app",
       theme_color: '#171717',
       background_color: '#f0e7db',
