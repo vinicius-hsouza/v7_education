@@ -6,13 +6,18 @@ function App() {
     // Ensure this code runs only on the client side
     if (typeof window !== 'undefined') {
       OneSignal.init({
-        appId: '8e4cfc95-5c63-4739-bc9d-9e2bde2fc855',
+        // appId: 'aa36eca4-4ff3-459c-befb-1d5b00151368',
+        appId: '6436f910-8f77-4e50-985a-290f2ca0e43f',
         // You can add other initialization options here
         notifyButton: {
           enable: true,
         },
         // Uncomment the below line to run on localhost. See: https://documentation.onesignal.com/docs/local-testing
-        // allowLocalhostAsSecureOrigin: true
+        allowLocalhostAsSecureOrigin: false,
+        welcomeNotification: {
+          title: 'Bem vindo',
+          message: 'Novo app configurado como modo notificação'
+        }
       });
     }
   }, []);
