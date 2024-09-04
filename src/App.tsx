@@ -6,8 +6,8 @@ function App() {
     // Ensure this code runs only on the client side
     if (typeof window !== 'undefined') {
       OneSignal.init({
-        // appId: 'aa36eca4-4ff3-459c-befb-1d5b00151368',
-        appId: '6436f910-8f77-4e50-985a-290f2ca0e43f',
+        appId: 'aa36eca4-4ff3-459c-befb-1d5b00151368',
+        // appId: '6436f910-8f77-4e50-985a-290f2ca0e43f'
         // You can add other initialization options here
         notifyButton: {
           enable: true,
@@ -17,7 +17,7 @@ function App() {
         welcomeNotification: {
           title: 'Bem vindo',
           message: 'Novo app configurado como modo notificação'
-        }
+        },
       });
     }
   }, []);
