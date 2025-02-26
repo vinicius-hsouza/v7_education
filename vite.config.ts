@@ -9,8 +9,8 @@ export default defineConfig({
     registerType: 'prompt',
     includeAssets: ['vite.svg', 'my_cash_icon.png'],
     manifest: {
-      name: "React-vite-app",
-      short_name: "V7",
+      name: "My Cash App",
+      short_name: "My Cash",
       description: "I am a simple vite app",
       theme_color: '#171717',
       background_color: '#f0e7db',
