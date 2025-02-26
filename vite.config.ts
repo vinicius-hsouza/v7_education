@@ -7,6 +7,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig({
   plugins: [react(), VitePWA({
     registerType: 'prompt',
+    includeAssets: ['vite.svg', 'my_cash_icon.png'],
     manifest: {
       name: "React-vite-app",
       short_name: "V7",
@@ -16,7 +17,14 @@ export default defineConfig({
       display: "standalone",
       scope: '/',
       start_url: "/",
-      orientation: 'portrait'
+      orientation: 'portrait',
+      icons: [
+        {
+          src: 'my_cash_icon.png',
+          sizes: '192x192',
+          type: 'image/png'
+        },
+      ]
     }
   })],
   resolve: {
