@@ -20,7 +20,7 @@ export default defineConfig({
       orientation: 'portrait',
       icons: [
         {
-          src: 'my_cash_icon.png',
+          src: './public/my_cash_icon.png',
           sizes: '192x192',
           type: 'image/png'
         },
