@@ -1,6 +1,6 @@
 import { createContext, useEffect, useState } from 'react'
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup, setPersistence, browserLocalPersistence, onAuthStateChanged } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithPopup, setPersistence, browserLocalPersistence, onAuthStateChanged, signOut as signOutGoogle } from "firebase/auth";
 import { getAnalytics } from "firebase/analytics";
 
 import type { ReactNode } from 'react'
@@ -9,11 +9,13 @@ type User = {
 
   id: string | undefined
   name: string | null | undefined
+  avatarUrl:string | null | undefined
 
 }
 
 type AuthData = {
   signIn: () => void
+  signOut: () => void
   user: User
 }
 
@@ -50,7 +52,7 @@ export function AuthProvider({
 
         console.log(user)
 
-        setUser({ id: user?.uid, name: user?.displayName })
+        setUser({ id: user?.uid, name: user?.displayName, avatarUrl: user.photoURL })
       }).catch(console.error)
 
 
@@ -59,16 +61,20 @@ export function AuthProvider({
     }
   }
 
+  async function signOut() {
+    try {
+      await signOutGoogle(auth)
+      setUser({} as User)
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
   useEffect(() => {
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        // User is signed in, see docs for a list of available properties
-        // https://firebase.google.com/docs/reference/js/auth.user
         setUser({ id: user?.uid, name: user?.displayName })
-        // ...
       } else {
-        // User is signed out
-        // ...
         console.error('user not logged')
       }
     });
@@ -76,7 +82,7 @@ export function AuthProvider({
   }, [])
 
   return (
-    <AuthContext.Provider value={{ signIn, user }}>
+    <AuthContext.Provider value={{ signIn, user, signOut }}>
       {children}
     </AuthContext.Provider>
   )

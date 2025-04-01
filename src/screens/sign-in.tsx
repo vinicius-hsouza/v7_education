@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { AuthContext } from "@/contexts/auth"
 import { useContext } from "react"
 import { useNavigate } from "react-router-dom";
@@ -9,11 +10,9 @@ export function SignIn() {
 
 
   return (
-    <div>
-      {user.id && (
-        <p>{user.name}</p>
-      )}
-      <button onClick={() => { signIn(); navigate('/home') }}>Logar</button>
+    <div className="flex flex-1 items-center justify-center flex-col h-screen">
+      <h1>Bem vindo ao MY Cash</h1>
+      <Button onClick={() => { signIn(); navigate('/home') }}> Entrar com o Google</Button>
     </div>
   )
 }
