@@ -73,7 +73,7 @@ export function AuthProvider({
   useEffect(() => {
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        setUser({ id: user?.uid, name: user?.displayName })
+        setUser({ id: user?.uid, name: user?.displayName, avatarUrl: null })
       } else {
         console.error('user not logged')
       }
