@@ -25,8 +25,6 @@ function App() {
   return (
     <AppProvider>
       <div className="p-8">
-        <p>teste</p>
-        <p>com notificação</p>
         <BrowserRouter>
           <Routes />
         </BrowserRouter>

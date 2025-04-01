@@ -33,14 +33,14 @@ const firebaseConfig = {
   measurementId: "G-B0ED2D7FJ4"
 };
 export const appFirebase = initializeApp(firebaseConfig);
-const auth = getAuth(appFirebase);
+export const auth = getAuth(appFirebase);
 
 export function AuthProvider({
   children,
 }: SearchContextProviderProps) {
   const [user, setUser] = useState<User>({} as User);
 
-  const analytics = getAnalytics(appFirebase);
+ getAnalytics(appFirebase);
 
   async function signIn() {
     try {
