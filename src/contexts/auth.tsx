@@ -62,8 +62,9 @@ export const appFirebase = initializeApp(firebaseConfig);
 export const auth = initializeAuth(appFirebase, {
   persistence: isIOSPWA()
     ? inMemoryPersistence
-    : indexedDBLocalPersistence,
+    : [indexedDBLocalPersistence],
 });
+
 
 /* =======================
    PROVIDER
