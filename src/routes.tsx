@@ -5,25 +5,36 @@ import { Home } from "./screens/home";
 import { SignIn } from "./screens/sign-in";
 import { Category } from "./screens/category";
 
-export function Routes() {
-  const { user } = useContext(AuthContext)
+export function PrivateRoute({ children }: { children: JSX.Element }) {
+  const { user, loading } = useContext(AuthContext);
 
-  if (user?.id) {
+  if (loading) {
     return (
-      <RoutesRR>
-        {/* <Route path="*" element={<Navigate to="/home" />} /> */}
-        <Route path="/" element={<Navigate to="/home" />} />
-        <Route path="/home" element={<Home />} />
-        <Route path="/category" element={<Category />} />
-      </RoutesRR>
-    )
+      <div className="flex h-screen items-center justify-center">
+        <p>Carregando...</p>
+      </div>
+    );
   }
 
-  return (
-    <RoutesRR>
-      {/* <Route path="*" element={<Navigate to="/sign-in" />} /> */}
-      <Route path="/" element={<Navigate to="/sign-in" />} />
-      <Route path="/sign-in" element={<SignIn />} />
-    </RoutesRR>
-  )
+  if (!user) {
+    return <Navigate to="/sign-in" replace />;
+  }
+
+  return children;
+}
+
+
+export function Routes() {
+  return (<RoutesRR>
+    <Route path="/sign-in" element={<SignIn />} />
+
+    <Route
+      path="/home"
+      element={
+        <PrivateRoute>
+          <Home />
+        </PrivateRoute>
+      }
+    />
+  </RoutesRR>)
 }

@@ -138,8 +138,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   if (loading) {
-    return null; // ou splash/loading
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <p>Carregando...</p>
+      </div>
+    );
   }
+
 
   return (
     <AuthContext.Provider
