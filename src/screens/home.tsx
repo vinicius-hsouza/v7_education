@@ -24,12 +24,17 @@ import {
   orderBy,
   query,
   Timestamp,
+  Query,
+  DocumentData,
 } from "firebase/firestore";
 
 import { useCollectionData } from "react-firebase-hooks/firestore";
 import { useContext, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+/* =======================
+   TYPES
+======================= */
 type ExpenseItem = {
   id: string;
   name: string;
@@ -46,13 +51,17 @@ export function Home() {
 
   const db = getFirestore(appFirebase);
 
+  /* =======================
+     FIRESTORE QUERY (TIPADA)
+  ======================= */
   const expensesCollection = collection(db, "expenses");
+
   const queryExpenses = query(
     expensesCollection,
     orderBy("created_at", "desc")
-  );
+  ) as Query<DocumentData>;
 
-  const [expenses] = useCollectionData<ExpenseItem>(queryExpenses);
+  const [expenses] = useCollectionData<ExpenseItem>(queryExpenses as any);
 
   /* =======================
      SALDO TOTAL
@@ -94,7 +103,7 @@ export function Home() {
 
   /* =======================
      AGRUPAMENTO POR DIA
-     (FIX DO created_at NULL)
+     (SAFE PARA created_at NULL)
   ======================= */
   const groupedExpenses = useMemo(() => {
     if (!expenses) return [];
@@ -225,10 +234,7 @@ export function Home() {
 
       {/* AÇÕES */}
       <div className="flex gap-2 p-4">
-        <Button
-          className="flex-1"
-          onClick={() => setOpen("REVENUE")}
-        >
+        <Button className="flex-1" onClick={() => setOpen("REVENUE")}>
           + Receita
         </Button>
 
@@ -243,12 +249,6 @@ export function Home() {
 
       {/* LISTA */}
       <div className="flex-1 px-4">
-        {groupedExpenses.length === 0 && (
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            Nenhum lançamento ainda
-          </p>
-        )}
-
         {groupedExpenses.map(([date, items]) => (
           <div key={date} className="mb-4">
             <p className="mb-2 text-xs font-semibold text-muted-foreground">
@@ -261,9 +261,7 @@ export function Home() {
                 className="flex items-center justify-between border-b py-3 text-sm"
               >
                 <div className="flex flex-col">
-                  <span className="truncate">
-                    {item.name}
-                  </span>
+                  <span className="truncate">{item.name}</span>
                   <span className="text-xs text-muted-foreground">
                     {getCategoryLabel(item.category)} •{" "}
                     {getAccountLabel(item.account)}
@@ -339,9 +337,7 @@ export function Home() {
               ))}
             </select>
 
-            <Button onClick={handleSave}>
-              Salvar
-            </Button>
+            <Button onClick={handleSave}>Salvar</Button>
           </div>
         </DialogContent>
       </Dialog>
