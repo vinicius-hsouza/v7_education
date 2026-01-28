@@ -10,9 +10,6 @@ function App() {
       OneSignal.init({
         // appId: 'aa36eca4-4ff3-459c-befb-1d5b00151368',
         appId: '6436f910-8f77-4e50-985a-290f2ca0e43f',
-        notifyButton: {
-          enable: false,
-        },
         allowLocalhostAsSecureOrigin: false,
         welcomeNotification: {
           title: 'Bem vindo',
