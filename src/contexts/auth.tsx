@@ -1,20 +1,15 @@
 import { createContext, useEffect, useState } from "react";
 import { initializeApp } from "firebase/app";
 import {
-  getAuth,
+  initializeAuth,
   GoogleAuthProvider,
-  signInWithPopup,
   signInWithRedirect,
-  setPersistence,
-  onAuthStateChanged,
   signOut as signOutGoogle,
+  onAuthStateChanged,
   getRedirectResult,
   indexedDBLocalPersistence,
   inMemoryPersistence,
 } from "firebase/auth";
-
-
-import { getAnalytics } from "firebase/analytics";
 import type { ReactNode } from "react";
 
 /* =======================
@@ -26,21 +21,17 @@ type User = {
   avatarUrl?: string | null;
 };
 
-type AuthData = {
-  signIn: () => Promise<void>;
-  signOut: () => Promise<void>;
+type AuthContextType = {
   user: User | null;
   loading: boolean;
+  signIn: () => Promise<void>;
+  signOut: () => Promise<void>;
 };
 
-export const AuthContext = createContext({} as AuthData);
-
-interface AuthProviderProps {
-  children: ReactNode;
-}
+export const AuthContext = createContext({} as AuthContextType);
 
 /* =======================
-   FIREBASE
+   FIREBASE CONFIG
 ======================= */
 const firebaseConfig = {
   apiKey: "AIzaSyCURovdfnaqJPB7UQIwm1VyTd7hDgMKjYA",
@@ -49,74 +40,48 @@ const firebaseConfig = {
   storageBucket: "my-cash-17e3d.firebasestorage.app",
   messagingSenderId: "481149060330",
   appId: "1:481149060330:web:7fc322fbcb6274e3d88393",
-  measurementId: "G-B0ED2D7FJ4",
 };
 
+/* =======================
+   HELPERS
+======================= */
+function isIOSPWA() {
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone =
+    (window.navigator as any).standalone === true ||
+    window.matchMedia("(display-mode: standalone)").matches;
+
+  return isIOS && isStandalone;
+}
+
+/* =======================
+   INIT FIREBASE
+======================= */
 export const appFirebase = initializeApp(firebaseConfig);
-export const auth = getAuth(appFirebase);
-getAnalytics(appFirebase);
+
+export const auth = initializeAuth(appFirebase, {
+  persistence: isIOSPWA()
+    ? inMemoryPersistence
+    : indexedDBLocalPersistence,
+});
 
 /* =======================
    PROVIDER
 ======================= */
-export function AuthProvider({ children }: AuthProviderProps) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      console.log("AUTH STATE:", firebaseUser?.uid);
-      if (firebaseUser) {
-        setUser({
-          id: firebaseUser.uid,
-          name: firebaseUser.displayName,
-          avatarUrl: firebaseUser.photoURL,
-        });
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  function isIOSPWA() {
-    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    const isStandalone =
-      (window.navigator as any).standalone === true ||
-      window.matchMedia("(display-mode: standalone)").matches;
-
-    return isIOS && isStandalone;
-  }
-
-
   /* =======================
-     SIGN IN
+     LOGIN (REDIRECT)
   ======================= */
   async function signIn() {
-    try {
-      const provider = new GoogleAuthProvider();
-
-      const iosPWA = isIOSPWA();
-
-      if (iosPWA) {
-        // 🔥 iOS PWA NÃO suporta browserLocalPersistence
-        await setPersistence(auth, inMemoryPersistence);
-        await signInWithRedirect(auth, provider);
-        return;
-      }
-
-      // Web / Android / Desktop
-      await setPersistence(auth, indexedDBLocalPersistence);
-      await signInWithPopup(auth, provider);
-    } catch (error) {
-      console.error("Erro no signIn:", error);
-    }
+    const provider = new GoogleAuthProvider();
+    await signInWithRedirect(auth, provider);
   }
 
   /* =======================
-     SIGN OUT
+     LOGOUT
   ======================= */
   async function signOut() {
     await signOutGoogle(auth);
@@ -124,15 +89,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   /* =======================
-     REDIRECT HANDLER
-     (NÃO seta user)
+     HANDLE REDIRECT
   ======================= */
   useEffect(() => {
-    getRedirectResult(auth).catch(console.error);
+    getRedirectResult(auth).catch(() => { });
   }, []);
 
   /* =======================
-     AUTH STATE (FONTE ÚNICA)
+     AUTH STATE (ÚNICA FONTE)
   ======================= */
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -160,7 +124,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   return (
-    <AuthContext.Provider value={{ signIn, signOut, user, loading }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );
