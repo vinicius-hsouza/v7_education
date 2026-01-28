@@ -19,7 +19,7 @@ export function Category() {
       const expensesCollection = collection(getFirestore(appFirebase), 'categories');
       const response = await addDoc(expensesCollection, {
         uid: v4(),
-        user_id: user.id,
+        user_id: user?.id,
         name,
         user,
         created_at: serverTimestamp(),
