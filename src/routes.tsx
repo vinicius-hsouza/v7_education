@@ -3,7 +3,6 @@ import { AuthContext } from "./contexts/auth";
 import { Navigate, Route, Routes as RoutesRR } from 'react-router-dom';
 import { Home } from "./screens/home";
 import { SignIn } from "./screens/sign-in";
-import { Category } from "./screens/category";
 
 export function PrivateRoute({ children }: { children: JSX.Element }) {
   const { user, loading } = useContext(AuthContext);
