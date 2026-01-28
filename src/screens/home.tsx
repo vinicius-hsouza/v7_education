@@ -37,7 +37,7 @@ type ExpenseItem = {
   type: "REVENUE" | "EXPENSE";
   category?: string;
   account?: string;
-  created_at: Timestamp;
+  created_at?: Timestamp | null;
 };
 
 export function Home() {
@@ -54,7 +54,9 @@ export function Home() {
 
   const [expenses] = useCollectionData<ExpenseItem>(queryExpenses);
 
-  // 🔹 Saldo total
+  /* =======================
+     SALDO TOTAL
+  ======================= */
   const total = useMemo(() => {
     return (
       expenses?.reduce((acc, item) => {
@@ -65,7 +67,9 @@ export function Home() {
     );
   }, [expenses]);
 
-  // 🔹 Saldo por conta
+  /* =======================
+     SALDO POR CONTA
+  ======================= */
   const balanceByAccount = useMemo(() => {
     const balances: Record<string, number> = {};
 
@@ -88,14 +92,20 @@ export function Home() {
     return balances;
   }, [expenses]);
 
-  // 🔹 Agrupamento por dia
+  /* =======================
+     AGRUPAMENTO POR DIA
+     (FIX DO created_at NULL)
+  ======================= */
   const groupedExpenses = useMemo(() => {
     if (!expenses) return [];
 
     const groups: Record<string, ExpenseItem[]> = {};
 
     expenses.forEach((item) => {
-      const date = item.created_at.toDate();
+      const date = item.created_at
+        ? item.created_at.toDate()
+        : new Date();
+
       const key = date.toLocaleDateString("pt-BR");
 
       if (!groups[key]) groups[key] = [];
@@ -105,7 +115,9 @@ export function Home() {
     return Object.entries(groups);
   }, [expenses]);
 
-  // Modal state
+  /* =======================
+     MODAL STATE
+  ======================= */
   const [open, setOpen] = useState<null | "REVENUE" | "EXPENSE">(null);
   const [name, setName] = useState("");
   const [rawValue, setRawValue] = useState("");
@@ -155,7 +167,7 @@ export function Home() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      {/* Header */}
+      {/* HEADER */}
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center gap-2">
           <Avatar className="h-9 w-9">
@@ -182,7 +194,7 @@ export function Home() {
         </Button>
       </div>
 
-      {/* Saldo total */}
+      {/* SALDO TOTAL */}
       <div className="mx-4 rounded-xl bg-zinc-900 p-4 text-white">
         <p className="text-sm opacity-80">Saldo total</p>
         <p className="text-2xl font-bold">
@@ -190,7 +202,7 @@ export function Home() {
         </p>
       </div>
 
-      {/* Saldos por conta */}
+      {/* SALDO POR CONTA */}
       <div className="mx-4 mt-4 space-y-2">
         {ACCOUNTS.map((acc) => (
           <div
@@ -211,7 +223,7 @@ export function Home() {
         ))}
       </div>
 
-      {/* Ações */}
+      {/* AÇÕES */}
       <div className="flex gap-2 p-4">
         <Button
           className="flex-1"
@@ -229,12 +241,18 @@ export function Home() {
         </Button>
       </div>
 
-      {/* Lista */}
+      {/* LISTA */}
       <div className="flex-1 px-4">
+        {groupedExpenses.length === 0 && (
+          <p className="mt-4 text-center text-sm text-muted-foreground">
+            Nenhum lançamento ainda
+          </p>
+        )}
+
         {groupedExpenses.map(([date, items]) => (
           <div key={date} className="mb-4">
             <p className="mb-2 text-xs font-semibold text-muted-foreground">
-              🗓️ {date}
+              {date}
             </p>
 
             {items.map((item) => (
@@ -268,7 +286,7 @@ export function Home() {
         ))}
       </div>
 
-      {/* Modal */}
+      {/* MODAL */}
       <Dialog open={!!open} onOpenChange={() => setOpen(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
