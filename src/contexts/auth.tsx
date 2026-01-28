@@ -62,6 +62,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const provider = new GoogleAuthProvider();
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      console.log("AUTH STATE:", firebaseUser?.uid);
+      if (firebaseUser) {
+        setUser({
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName,
+          avatarUrl: firebaseUser.photoURL,
+        });
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   /* =======================
      SIGN IN
   ======================= */
