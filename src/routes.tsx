@@ -28,7 +28,7 @@ export function Routes() {
     <Route path="/sign-in" element={<SignIn />} />
 
     <Route
-      path="/home"
+      path="/"
       element={
         <PrivateRoute>
           <Home />

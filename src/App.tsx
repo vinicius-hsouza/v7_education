@@ -21,11 +21,11 @@ function App() {
 
   return (
     <AppProvider>
-      <div className="p-8">
-        <BrowserRouter>
-          <Routes />
-        </BrowserRouter>
-      </div>
+
+      <BrowserRouter>
+        <Routes />
+      </BrowserRouter>
+
     </AppProvider>
   )
 }
