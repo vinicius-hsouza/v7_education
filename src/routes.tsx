@@ -3,25 +3,27 @@ import { AuthContext } from "./contexts/auth";
 import { Navigate, Route, Routes as RoutesRR } from 'react-router-dom';
 import { Home } from "./screens/home";
 import { SignIn } from "./screens/sign-in";
+import { Category } from "./screens/category";
 
 export function Routes() {
   const { user } = useContext(AuthContext)
 
-  if (!user?.id) {
+  if (user?.id) {
     return (
       <RoutesRR>
-        <Route path="*" element={<Navigate to="/sign-in" />} />
-        <Route path="/" element={<Navigate to="/sign-in" />} />
-        <Route path="/sign-in" element={<SignIn />} />
+        {/* <Route path="*" element={<Navigate to="/home" />} /> */}
+        <Route path="/" element={<Navigate to="/home" />} />
+        <Route path="/home" element={<Home />} />
+        <Route path="/category" element={<Category />} />
       </RoutesRR>
     )
   }
 
   return (
     <RoutesRR>
-      <Route path="*" element={<Navigate to="/home" />} />
-      <Route path="/" element={<Navigate to="/home" />} />
-      <Route path="/home" element={<Home />} />
+      {/* <Route path="*" element={<Navigate to="/sign-in" />} /> */}
+      <Route path="/" element={<Navigate to="/sign-in" />} />
+      <Route path="/sign-in" element={<SignIn />} />
     </RoutesRR>
   )
 }
