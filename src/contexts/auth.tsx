@@ -5,11 +5,11 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   signInWithRedirect,
-  getRedirectResult,
   setPersistence,
   browserLocalPersistence,
   onAuthStateChanged,
   signOut as signOutGoogle,
+  getRedirectResult,
 } from "firebase/auth";
 import { getAnalytics } from "firebase/analytics";
 import type { ReactNode } from "react";
@@ -51,7 +51,6 @@ const firebaseConfig = {
 
 export const appFirebase = initializeApp(firebaseConfig);
 export const auth = getAuth(appFirebase);
-
 getAnalytics(appFirebase);
 
 /* =======================
@@ -64,7 +63,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const provider = new GoogleAuthProvider();
 
   /* =======================
-     SIGN IN (PWA SAFE)
+     SIGN IN
   ======================= */
   async function signIn() {
     try {
@@ -72,14 +71,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       const isPWA =
         window.matchMedia("(display-mode: standalone)").matches ||
-        // iOS Safari
         (window.navigator as any).standalone === true;
 
       if (isPWA) {
-        // ✅ PWA → redirect
         await signInWithRedirect(auth, provider);
       } else {
-        // ✅ Desktop → popup
         await signInWithPopup(auth, provider);
       }
     } catch (error) {
@@ -91,34 +87,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
      SIGN OUT
   ======================= */
   async function signOut() {
-    try {
-      await signOutGoogle(auth);
-      setUser(null);
-    } catch (error) {
-      console.error("Erro no signOut:", error);
-    }
+    await signOutGoogle(auth);
+    setUser(null);
   }
 
   /* =======================
-     HANDLE REDIRECT (PWA)
+     REDIRECT HANDLER
+     (NÃO seta user)
   ======================= */
   useEffect(() => {
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result?.user) {
-          const u = result.user;
-          setUser({
-            id: u.uid,
-            name: u.displayName,
-            avatarUrl: u.photoURL,
-          });
-        }
-      })
-      .catch(console.error);
+    getRedirectResult(auth).catch(console.error);
   }, []);
 
   /* =======================
-     AUTH STATE LISTENER
+     AUTH STATE (FONTE ÚNICA)
   ======================= */
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -145,16 +127,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     );
   }
 
-
   return (
-    <AuthContext.Provider
-      value={{
-        signIn,
-        signOut,
-        user,
-        loading,
-      }}
-    >
+    <AuthContext.Provider value={{ signIn, signOut, user, loading }}>
       {children}
     </AuthContext.Provider>
   );
