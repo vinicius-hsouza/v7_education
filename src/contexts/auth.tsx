@@ -6,11 +6,14 @@ import {
   signInWithPopup,
   signInWithRedirect,
   setPersistence,
-  browserLocalPersistence,
   onAuthStateChanged,
   signOut as signOutGoogle,
   getRedirectResult,
+  indexedDBLocalPersistence,
+  inMemoryPersistence,
 } from "firebase/auth";
+
+
 import { getAnalytics } from "firebase/analytics";
 import type { ReactNode } from "react";
 
@@ -80,22 +83,35 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => unsubscribe();
   }, []);
 
+  function isIOSPWA() {
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isStandalone =
+      (window.navigator as any).standalone === true ||
+      window.matchMedia("(display-mode: standalone)").matches;
+
+    return isIOS && isStandalone;
+  }
+
+
   /* =======================
      SIGN IN
   ======================= */
   async function signIn() {
     try {
-      await setPersistence(auth, browserLocalPersistence);
+      const provider = new GoogleAuthProvider();
 
-      const isPWA =
-        window.matchMedia("(display-mode: standalone)").matches ||
-        (window.navigator as any).standalone === true;
+      const iosPWA = isIOSPWA();
 
-      if (isPWA) {
+      if (iosPWA) {
+        // 🔥 iOS PWA NÃO suporta browserLocalPersistence
+        await setPersistence(auth, inMemoryPersistence);
         await signInWithRedirect(auth, provider);
-      } else {
-        await signInWithPopup(auth, provider);
+        return;
       }
+
+      // Web / Android / Desktop
+      await setPersistence(auth, indexedDBLocalPersistence);
+      await signInWithPopup(auth, provider);
     } catch (error) {
       console.error("Erro no signIn:", error);
     }
