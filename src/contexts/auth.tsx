@@ -1,14 +1,12 @@
 import { createContext, useEffect, useState } from "react";
 import { initializeApp } from "firebase/app";
 import {
-  initializeAuth,
+  getAuth,
   GoogleAuthProvider,
   signInWithRedirect,
   signOut as signOutGoogle,
   onAuthStateChanged,
   getRedirectResult,
-  indexedDBLocalPersistence,
-  inMemoryPersistence,
 } from "firebase/auth";
 import type { ReactNode } from "react";
 
@@ -40,31 +38,11 @@ const firebaseConfig = {
   storageBucket: "my-cash-17e3d.firebasestorage.app",
   messagingSenderId: "481149060330",
   appId: "1:481149060330:web:7fc322fbcb6274e3d88393",
+  measurementId: "G-B0ED2D7FJ4"
 };
 
-/* =======================
-   HELPERS
-======================= */
-function isIOSPWA() {
-  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  const isStandalone =
-    (window.navigator as any).standalone === true ||
-    window.matchMedia("(display-mode: standalone)").matches;
-
-  return isIOS && isStandalone;
-}
-
-/* =======================
-   INIT FIREBASE
-======================= */
 export const appFirebase = initializeApp(firebaseConfig);
-
-export const auth = initializeAuth(appFirebase, {
-  persistence: isIOSPWA()
-    ? inMemoryPersistence
-    : [indexedDBLocalPersistence],
-});
-
+export const auth = getAuth(appFirebase);
 
 /* =======================
    PROVIDER
@@ -72,6 +50,24 @@ export const auth = initializeAuth(appFirebase, {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      console.log("AUTH STATE:", firebaseUser?.uid);
+      if (firebaseUser) {
+        setUser({
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName,
+          avatarUrl: firebaseUser.photoURL,
+        });
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   /* =======================
      LOGIN (REDIRECT)
@@ -97,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /* =======================
-     AUTH STATE (ÚNICA FONTE)
+     AUTH STATE
   ======================= */
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
