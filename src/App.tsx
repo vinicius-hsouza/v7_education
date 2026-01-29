@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import OneSignal from "react-onesignal";
 import { Routes } from "./routes";
+import './index.css'
 
 function App() {
   useEffect(() => {
