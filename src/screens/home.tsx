@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import {
   Avatar,
   AvatarFallback,
-  AvatarImage,
 } from "@/components/ui/avatar";
 import {
   Dialog,
@@ -46,7 +45,7 @@ type ExpenseItem = {
 };
 
 export function Home() {
-  const { user, signOut } = useContext(AuthContext);
+  const { user, signOutUser } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const db = getFirestore(appFirebase);
@@ -180,14 +179,14 @@ export function Home() {
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center gap-2">
           <Avatar className="h-9 w-9">
-            {user?.avatarUrl && (
+            {/* {user?.avatarUrl && (
               <AvatarImage src={user.avatarUrl} />
-            )}
+            )} */}
             <AvatarFallback>U</AvatarFallback>
           </Avatar>
 
           <span className="text-sm font-medium">
-            Olá, {user?.name}
+            Olá, {user?.email}
           </span>
         </div>
 
@@ -195,7 +194,7 @@ export function Home() {
           variant="ghost"
           size="sm"
           onClick={() => {
-            signOut();
+            signOutUser();
             navigate("/sign-in");
           }}
         >
