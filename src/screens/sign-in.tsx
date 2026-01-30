@@ -2,14 +2,18 @@ import { useContext, useState } from "react";
 import { AuthContext } from "@/contexts/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export function SignIn() {
   const { signIn, signUp } = useContext(AuthContext);
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit() {
@@ -18,11 +22,15 @@ export function SignIn() {
       setError(null);
 
       if (isRegister) {
-        await signUp(email, password);
+        if (!name) {
+          setError("Informe seu nome");
+          return;
+        }
+        await signUp(email, password, name);
       } else {
         await signIn(email, password);
       }
-    } catch (err: any) {
+    } catch (err) {
       setError("Email ou senha inválidos");
     } finally {
       setLoading(false);
@@ -30,50 +38,113 @@ export function SignIn() {
   }
 
   return (
-    <div className="flex h-screen items-center justify-center px-4">
-      <div className="w-full max-w-sm space-y-4">
-        <h1 className="text-xl font-semibold text-center">
-          {isRegister ? "Criar conta" : "Entrar"}
-        </h1>
+    <div className="min-h-screen bg-[#1656D4] flex items-center justify-center px-4">
+      <div className="w-full max-w-sm text-white">
+        {/* Header */}
+        <div className="flex flex-col items-center mb-10">
+          <div className="w-24 h-24 rounded-2xl bg-white/10 flex items-center justify-center mb-6 shadow-lg">
+            <span className="text-4xl font-semibold">MC</span>
+          </div>
 
-        <Input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+          <h1 className="text-2xl font-semibold mb-1">
+            {isRegister ? "Create account" : "Welcome back"}
+          </h1>
 
-        <Input
-          type="password"
-          placeholder="Senha"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+          <p className="text-white/80 text-sm text-center">
+            {isRegister
+              ? "Create an account to manage your finances"
+              : "Sign in to manage your finances"}
+          </p>
+        </div>
 
-        {error && (
-          <p className="text-sm text-red-500 text-center">{error}</p>
-        )}
+        {/* Form */}
+        <div className="space-y-5">
+          {isRegister && (
+            <div className="space-y-1">
+              <Label className="text-white">Name</Label>
+              <Input
+                className="h-14 rounded-2xl text-base"
+                placeholder="Your name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+          )}
 
-        <Button
-          className="w-full"
-          onClick={handleSubmit}
-          disabled={loading}
-        >
-          {loading
-            ? "Carregando..."
-            : isRegister
-              ? "Criar conta"
-              : "Entrar"}
-        </Button>
+          <div className="space-y-1">
+            <Label className="text-white">Email Address</Label>
+            <Input
+              type="email"
+              className="h-14 rounded-2xl text-base"
+              placeholder="name@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
 
-        <button
-          className="w-full text-sm text-muted-foreground"
-          onClick={() => setIsRegister(!isRegister)}
-        >
-          {isRegister
-            ? "Já tenho conta"
-            : "Ainda não tenho conta"}
-        </button>
+          <div className="space-y-1">
+            <Label className="text-white">Password</Label>
+            <Input
+              type="password"
+              className="h-14 rounded-2xl text-base"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+
+          {error && (
+            <p className="text-sm text-red-200 text-center">{error}</p>
+          )}
+
+          {!isRegister && (
+            <div className="text-right">
+              <button
+                type="button"
+                className="text-sm text-white/80 hover:underline"
+              >
+                Forgot password?
+              </button>
+            </div>
+          )}
+
+          <Button
+            className="w-full h-14 rounded-2xl bg-white text-[#1656D4] text-base font-semibold hover:bg-white/90"
+            onClick={handleSubmit}
+            disabled={loading}
+          >
+            {loading
+              ? "Loading..."
+              : isRegister
+                ? "Sign Up"
+                : "Log In"}
+          </Button>
+
+          <button
+            type="button"
+            onClick={() => setIsRegister(!isRegister)}
+            className="w-full text-center text-sm text-white/80"
+          >
+            {isRegister ? (
+              <>
+                Already have an account?{" "}
+                <span className="text-white font-medium">Log In</span>
+              </>
+            ) : (
+              <>
+                Don&apos;t have an account?{" "}
+                <span className="text-white font-medium">Sign Up</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-10 flex justify-center">
+          <div className="flex items-center gap-2 text-white/60 text-xs px-4 py-2 rounded-full bg-white/10">
+            🔒 Secure connection
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -1,345 +1,349 @@
-import { Button } from "@/components/ui/button";
-import {
-  Avatar,
-  AvatarFallback,
-} from "@/components/ui/avatar";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-
-import { appFirebase, AuthContext } from "@/contexts/auth";
-import { createExpense, createRevenue } from "@/lib/api";
-import { formatBRL, parseBRL } from "@/lib/money";
-import { CATEGORIES } from "@/lib/categories";
-import { ACCOUNTS } from "@/lib/accounts";
-
+import { useContext, useMemo, useState } from "react";
+import { AuthContext } from "@/contexts/auth";
+import { appFirebase } from "@/contexts/auth";
 import {
   collection,
   getFirestore,
-  orderBy,
   query,
+  where,
+  orderBy,
   Timestamp,
-  Query,
-  DocumentData,
 } from "firebase/firestore";
-
 import { useCollectionData } from "react-firebase-hooks/firestore";
-import { useContext, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 
-/* =======================
-   TYPES
-======================= */
+import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { NewTransactionModal } from "@/components/new-transaction-modal";
+import { getMonthRange, formatMonthYear } from "@/lib/date";
+
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+} from "recharts";
+
+import type { Category } from "@/lib/categories";
+
+const COLORS = ["#22c55e", "#ef4444"];
+
 type ExpenseItem = {
-  id: string;
+  uid: string;
+  userId: string;
   name: string;
   value: number;
-  type: "REVENUE" | "EXPENSE";
-  category?: string;
-  account?: string;
-  created_at?: Timestamp | null;
+  type: "EXPENSE" | "REVENUE";
+  category: Category;
+  created_at_ts: any;
 };
 
 export function Home() {
-  const { user, signOutUser } = useContext(AuthContext);
-  const navigate = useNavigate();
+  const firestore = getFirestore(appFirebase);
+  const { user } = useContext(AuthContext);
 
-  const db = getFirestore(appFirebase);
+  const [open, setOpen] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  /* =======================
-     FIRESTORE QUERY (TIPADA)
-  ======================= */
-  const expensesCollection = collection(db, "expenses");
+  const previousMonth = new Date(
+    currentMonth.getFullYear(),
+    currentMonth.getMonth() - 1
+  );
 
-  const queryExpenses = query(
-    expensesCollection,
-    orderBy("created_at", "desc")
-  ) as Query<DocumentData>;
+  const { start: prevStart, end: prevEnd } = getMonthRange(previousMonth);
 
-  const [expenses] = useCollectionData<ExpenseItem>(queryExpenses as any);
+  const previousExpensesQuery = useMemo(() => {
+    if (!user) return null;
 
-  /* =======================
-     SALDO TOTAL
-  ======================= */
-  const total = useMemo(() => {
-    return (
-      expenses?.reduce((acc, item) => {
-        if (item.type === "REVENUE") return acc + item.value;
-        if (item.type === "EXPENSE") return acc - item.value;
-        return acc;
-      }, 0) ?? 0
+    return query(
+      collection(firestore, "expenses"),
+      where("userId", "==", user.id),
+      where("created_at_ts", ">=", Timestamp.fromDate(prevStart)),
+      where("created_at_ts", "<", Timestamp.fromDate(prevEnd))
+    );
+  }, [user, prevStart, prevEnd, firestore]);
+
+  const [previousExpenses = []] =
+    useCollectionData(previousExpensesQuery ?? undefined);
+
+  const { start, end } = getMonthRange(currentMonth);
+
+  const expensesQuery = useMemo(() => {
+    if (!user) return null;
+
+    return query(
+      collection(firestore, "expenses"),
+      where("userId", "==", user.id),
+      where("created_at_ts", ">=", Timestamp.fromDate(start)),
+      where("created_at_ts", "<", Timestamp.fromDate(end)),
+      orderBy("created_at_ts", "desc")
+    );
+  }, [user, start, end, firestore]);
+
+  const [expenses = [], loading] =
+    useCollectionData<ExpenseItem>(expensesQuery ?? undefined);
+
+  /* ======================
+     CÁLCULOS
+  ====================== */
+
+  const totalBalance = useMemo(() => {
+    return expenses.reduce(
+      (acc, item) =>
+        item.type === "REVENUE"
+          ? acc + item.value
+          : acc - item.value,
+      0
     );
   }, [expenses]);
 
-  /* =======================
-     SALDO POR CONTA
-  ======================= */
-  const balanceByAccount = useMemo(() => {
-    const balances: Record<string, number> = {};
-
-    ACCOUNTS.forEach((acc) => {
-      balances[acc.id] = 0;
-    });
-
-    expenses?.forEach((item) => {
-      const account = item.account ?? "CHECKING";
-
-      if (item.type === "REVENUE") {
-        balances[account] += item.value;
-      }
-
-      if (item.type === "EXPENSE") {
-        balances[account] -= item.value;
-      }
-    });
-
-    return balances;
+  const totalIncome = useMemo(() => {
+    return expenses
+      .filter((e) => e.type === "REVENUE")
+      .reduce((acc, e) => acc + e.value, 0);
   }, [expenses]);
 
-  /* =======================
-     AGRUPAMENTO POR DIA
-     (SAFE PARA created_at NULL)
-  ======================= */
-  const groupedExpenses = useMemo(() => {
-    if (!expenses) return [];
-
-    const groups: Record<string, ExpenseItem[]> = {};
-
-    expenses.forEach((item) => {
-      const date = item.created_at
-        ? item.created_at.toDate()
-        : new Date();
-
-      const key = date.toLocaleDateString("pt-BR");
-
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(item);
-    });
-
-    return Object.entries(groups);
+  const totalExpenses = useMemo(() => {
+    return expenses
+      .filter((e) => e.type === "EXPENSE")
+      .reduce((acc, e) => acc + e.value, 0);
   }, [expenses]);
 
-  /* =======================
-     MODAL STATE
-  ======================= */
-  const [open, setOpen] = useState<null | "REVENUE" | "EXPENSE">(null);
-  const [name, setName] = useState("");
-  const [rawValue, setRawValue] = useState("");
-  const [category, setCategory] = useState("OTHER");
-  const [account, setAccount] = useState("CHECKING");
+  const prevIncome = useMemo(() => {
+    return previousExpenses
+      .filter((e) => e.type === "REVENUE")
+      .reduce((acc, e) => acc + e.value, 0);
+  }, [previousExpenses]);
 
-  function handleSave() {
-    if (!name || !rawValue || !user) return;
+  const prevExpensesTotal = useMemo(() => {
+    return previousExpenses
+      .filter((e) => e.type === "EXPENSE")
+      .reduce((acc, e) => acc + e.value, 0);
+  }, [previousExpenses]);
 
-    const value = parseBRL(rawValue);
+  const chartData = useMemo(
+    () => [
+      { name: "Receitas", value: totalIncome },
+      { name: "Despesas", value: totalExpenses },
+    ],
+    [totalIncome, totalExpenses]
+  );
 
-    const payload = {
-      name,
-      value,
-      category,
-      account,
+  function getVariation(current: number, previous: number) {
+    if (previous === 0) return null;
+
+    const diff = current - previous;
+    const percent = (diff / previous) * 100;
+
+    return {
+      percent: Math.abs(percent).toFixed(1),
+      positive: diff >= 0,
     };
-
-    if (open === "REVENUE") {
-      createRevenue(user, payload);
-    }
-
-    if (open === "EXPENSE") {
-      createExpense(user, payload);
-    }
-
-    setName("");
-    setRawValue("");
-    setCategory("OTHER");
-    setAccount("CHECKING");
-    setOpen(null);
   }
 
-  function getCategoryLabel(id?: string) {
+  if (!user || loading) {
     return (
-      CATEGORIES.find((c) => c.id === id)?.label ??
-      "📦 Outros"
-    );
-  }
-
-  function getAccountLabel(id?: string) {
-    return (
-      ACCOUNTS.find((a) => a.id === id)?.label ??
-      "💳 Conta Corrente"
+      <div className="flex h-screen items-center justify-center bg-[#0B1220] text-white">
+        <p>Carregando...</p>
+      </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="min-h-screen pb-28 bg-gradient-to-b from-[#0B1220] to-[#0E1627] text-white">
       {/* HEADER */}
-      <div className="flex items-center justify-between p-4">
-        <div className="flex items-center gap-2">
-          <Avatar className="h-9 w-9">
-            {/* {user?.avatarUrl && (
-              <AvatarImage src={user.avatarUrl} />
-            )} */}
-            <AvatarFallback>U</AvatarFallback>
+      <div className="flex items-center justify-between px-5 pt-6">
+        <div className="flex items-center gap-3">
+          <Avatar className="h-10 w-10">
+            <AvatarFallback className="bg-blue-500 text-white">
+              {user.name?.charAt(0).toUpperCase()}
+            </AvatarFallback>
           </Avatar>
 
-          <span className="text-sm font-medium">
-            Olá, {user?.email}
-          </span>
+          <div>
+            <p className="text-xs text-white/60 uppercase">
+              Good morning,
+            </p>
+            <p className="font-semibold text-lg text-white">
+              {user.name}
+            </p>
+          </div>
         </div>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            signOutUser();
-            navigate("/sign-in");
-          }}
+        <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center text-white">
+          🔔
+        </div>
+      </div>
+
+      {/* MÊS */}
+      <div className="flex items-center justify-center gap-4 mt-6">
+        <button
+          onClick={() =>
+            setCurrentMonth(
+              new Date(
+                currentMonth.getFullYear(),
+                currentMonth.getMonth() - 1
+              )
+            )
+          }
+          className="text-white/60"
         >
-          Sair
-        </Button>
-      </div>
+          ◀
+        </button>
 
-      {/* SALDO TOTAL */}
-      <div className="mx-4 rounded-xl bg-zinc-900 p-4 text-white">
-        <p className="text-sm opacity-80">Saldo total</p>
-        <p className="text-2xl font-bold">
-          {formatBRL(total)}
-        </p>
-      </div>
+        <div className="px-6 py-2 rounded-full bg-blue-500 font-medium text-white">
+          {formatMonthYear(currentMonth)}
+        </div>
 
-      {/* SALDO POR CONTA */}
-      <div className="mx-4 mt-4 space-y-2">
-        {ACCOUNTS.map((acc) => (
-          <div
-            key={acc.id}
-            className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm"
-          >
-            <span>{acc.label}</span>
-            <span
-              className={
-                balanceByAccount[acc.id] < 0
-                  ? "font-medium text-red-600"
-                  : "font-medium text-green-600"
-              }
-            >
-              {formatBRL(balanceByAccount[acc.id] ?? 0)}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {/* AÇÕES */}
-      <div className="flex gap-2 p-4">
-        <Button className="flex-1" onClick={() => setOpen("REVENUE")}>
-          + Receita
-        </Button>
-
-        <Button
-          className="flex-1"
-          variant="destructive"
-          onClick={() => setOpen("EXPENSE")}
+        <button
+          onClick={() =>
+            setCurrentMonth(
+              new Date(
+                currentMonth.getFullYear(),
+                currentMonth.getMonth() + 1
+              )
+            )
+          }
+          className="text-white/60"
         >
-          - Despesa
-        </Button>
+          ▶
+        </button>
       </div>
+
+      {/* SALDO */}
+      <div className="px-5 mt-8">
+        <div className="rounded-3xl p-6 bg-gradient-to-br from-indigo-500 to-purple-600 shadow-xl text-white">
+          <p className="text-sm text-white/70">
+            Saldo do mês
+          </p>
+
+          <h2 className="text-4xl font-bold mt-2">
+            R$ {totalBalance.toFixed(2)}
+          </h2>
+
+          {getVariation(
+            totalBalance,
+            prevIncome - prevExpensesTotal
+          ) && (
+              <span className="inline-block mt-4 px-3 py-1 text-xs rounded-full bg-white/20">
+                {getVariation(
+                  totalBalance,
+                  prevIncome - prevExpensesTotal
+                )!.positive
+                  ? "+"
+                  : "-"}
+                {
+                  getVariation(
+                    totalBalance,
+                    prevIncome - prevExpensesTotal
+                  )!.percent
+                }
+                %
+              </span>
+            )}
+        </div>
+      </div>
+
+      {/* INCOME / EXPENSES */}
+      <div className="grid grid-cols-2 gap-4 px-5 mt-6">
+        <div className="rounded-2xl p-4 bg-white/5 backdrop-blur border border-white/10 text-white">
+          <p className="text-xs text-white/60">Entradas</p>
+          <p className="text-2xl font-semibold text-green-400 mt-1">
+            R$ {totalIncome.toFixed(2)}
+          </p>
+        </div>
+
+        <div className="rounded-2xl p-4 bg-white/5 backdrop-blur border border-white/10 text-white">
+          <p className="text-xs text-white/60">Saidas</p>
+          <p className="text-2xl font-semibold text-red-400 mt-1">
+            R$ {totalExpenses.toFixed(2)}
+          </p>
+        </div>
+      </div>
+
+      {/* GRÁFICO
+      <div className="px-5 mt-8">
+        <Card className="bg-white/5 border border-white/10 rounded-2xl text-white">
+          <CardContent className="p-4">
+            <div className="h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={chartData}
+                    dataKey="value"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={70}
+                  >
+                    {chartData.map((_, i) => (
+                      <Cell key={i} fill={COLORS[i]} />
+                    ))}
+                  </Pie>
+
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#0E1627",
+                      borderRadius: "12px",
+                      border:
+                        "1px solid rgba(255,255,255,0.1)",
+                      color: "#fff",
+                    }}
+                    formatter={(v: number) =>
+                      `R$ ${v.toFixed(2)}`
+                    }
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </div> */}
 
       {/* LISTA */}
-      <div className="flex-1 px-4">
-        {groupedExpenses.map(([date, items]) => (
-          <div key={date} className="mb-4">
-            <p className="mb-2 text-xs font-semibold text-muted-foreground">
-              {date}
-            </p>
-
-            {items.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between border-b py-3 text-sm"
-              >
-                <div className="flex flex-col">
-                  <span className="truncate">{item.name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {getCategoryLabel(item.category)} •{" "}
-                    {getAccountLabel(item.account)}
-                  </span>
-                </div>
-
-                <span
-                  className={
-                    item.type === "REVENUE"
-                      ? "font-medium text-green-600"
-                      : "font-medium text-red-600"
-                  }
-                >
-                  {item.type === "REVENUE" ? "+" : "-"}{" "}
-                  {formatBRL(item.value)}
-                </span>
+      <div className="px-5 mt-8 space-y-3">
+        <p className="text-xs text-white/60">Transações</p>
+        {expenses.map((item) => (
+          <Card
+            key={item.uid}
+            className="bg-white/5 border border-white/10 rounded-2xl text-white"
+          >
+            <CardContent className="p-4 flex justify-between items-center">
+              <div>
+                <p className="font-medium text-white">
+                  {item.name}
+                </p>
+                <p className="text-xs text-white/60">
+                  {item.category}
+                </p>
               </div>
-            ))}
-          </div>
+
+              <p
+                className={`font-semibold ${item.type === "REVENUE"
+                  ? "text-green-400"
+                  : "text-red-400"
+                  }`}
+              >
+                {item.type === "REVENUE" ? "+" : "-"} R${" "}
+                {item.value.toFixed(2)}
+              </p>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
-      {/* MODAL */}
-      <Dialog open={!!open} onOpenChange={() => setOpen(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {open === "REVENUE"
-                ? "Nova receita"
-                : "Nova despesa"}
-            </DialogTitle>
-          </DialogHeader>
+      {/* FAB */}
+      <button
+        onClick={() => setOpen(true)}
+        className="fixed bottom-24 right-6 h-14 w-14 rounded-full bg-blue-500 text-white text-3xl shadow-2xl flex items-center justify-center"
+      >
+        +
+      </button>
 
-          <div className="flex flex-col gap-3">
-            <Input
-              placeholder="Descrição"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-
-            <Input
-              placeholder="Valor"
-              inputMode="numeric"
-              value={rawValue}
-              onChange={(e) =>
-                setRawValue(
-                  formatBRL(parseBRL(e.target.value))
-                )
-              }
-            />
-
-            <select
-              className="rounded-md border px-3 py-2 text-sm"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
-              {CATEGORIES.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.label}
-                </option>
-              ))}
-            </select>
-
-            <select
-              className="rounded-md border px-3 py-2 text-sm"
-              value={account}
-              onChange={(e) => setAccount(e.target.value)}
-            >
-              {ACCOUNTS.map((acc) => (
-                <option key={acc.id} value={acc.id}>
-                  {acc.label}
-                </option>
-              ))}
-            </select>
-
-            <Button onClick={handleSave}>Salvar</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <NewTransactionModal
+        open={open}
+        onOpenChange={setOpen}
+        userId={user.id}
+      />
     </div>
   );
 }

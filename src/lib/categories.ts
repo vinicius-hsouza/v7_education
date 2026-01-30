@@ -1,9 +1,21 @@
-export const CATEGORIES = [
-  { id: "FOOD", label: "🍔 Alimentação" },
-  { id: "MARKET", label: "🛒 Mercado" },
-  { id: "TRANSPORT", label: "🚗 Transporte" },
-  { id: "LEISURE", label: "🎉 Lazer" },
-  { id: "HOME", label: "🏠 Moradia" },
-  { id: "WORK", label: "💼 Trabalho" },
-  { id: "OTHER", label: "📦 Outros" },
+export type Category =
+  | "ALIMENTACAO"
+  | "MORADIA"
+  | "TRANSPORTE"
+  | "LAZER"
+  | "SAUDE"
+  | "EDUCACAO"
+  | "OUTROS";
+
+export const CATEGORIES: {
+  value: Category;
+  label: string;
+}[] = [
+  { value: "ALIMENTACAO", label: "Alimentação" },
+  { value: "MORADIA", label: "Moradia" },
+  { value: "TRANSPORTE", label: "Transporte" },
+  { value: "LAZER", label: "Lazer" },
+  { value: "SAUDE", label: "Saúde" },
+  { value: "EDUCACAO", label: "Educação" },
+  { value: "OUTROS", label: "Outros" },
 ];
