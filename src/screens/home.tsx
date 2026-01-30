@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import { AuthContext } from "@/contexts/auth";
 import { appFirebase } from "@/contexts/auth";
 import {
@@ -33,7 +33,7 @@ type ExpenseItem = {
 
 export function Home() {
   const firestore = getFirestore(appFirebase);
-  const { user, signOutUser } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
 
   const [open, setOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -74,7 +74,7 @@ export function Home() {
   }, [user, start, end, firestore]);
 
   const [expenses = [], loading] =
-    useCollectionData<ExpenseItem>(expensesQuery ?? undefined);
+    useCollectionData<ExpenseItem>(expensesQuery as any);
 
   /* ======================
      CÁLCULOS
