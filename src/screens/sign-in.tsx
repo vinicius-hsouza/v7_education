@@ -26,7 +26,7 @@ export function SignIn() {
           setError("Informe seu nome");
           return;
         }
-        await signUp(email, password, name);
+        await signUp({ email, password, name });
       } else {
         await signIn(email, password);
       }

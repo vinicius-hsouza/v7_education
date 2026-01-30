@@ -6,6 +6,7 @@ import {
   signOut,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  updateProfile
 } from "firebase/auth";
 import type { ReactNode } from "react";
 
@@ -15,13 +16,14 @@ import type { ReactNode } from "react";
 type User = {
   id: string;
   email: string | null;
+  name?: string
 };
 
 type AuthContextType = {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: ({ name, email, password }: { name: string, email: string, password: string }) => Promise<void>;
   signOutUser: () => Promise<void>;
 };
 
@@ -53,8 +55,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signInWithEmailAndPassword(auth, email, password);
   }
 
-  async function signUp(email: string, password: string) {
-    await createUserWithEmailAndPassword(auth, email, password);
+  async function signUp({ name, email, password }: { name: string, email: string, password: string }) {
+    const { user } = await createUserWithEmailAndPassword(auth, email, password);
+
+    // 👇 aqui define o nome do usuário
+    await updateProfile(user, {
+      displayName: name,
+    });
+
   }
 
   async function signOutUser() {
@@ -67,7 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (firebaseUser) {
         setUser({
           id: firebaseUser.uid,
-          email: firebaseUser.email,
+          name: firebaseUser.displayName ?? "",
+          email: firebaseUser.email
         });
       } else {
         setUser(null);

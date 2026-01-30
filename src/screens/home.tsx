@@ -1,4 +1,4 @@
-import { useContext, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { AuthContext } from "@/contexts/auth";
 import { appFirebase } from "@/contexts/auth";
 import {
@@ -16,17 +16,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { NewTransactionModal } from "@/components/new-transaction-modal";
 import { getMonthRange, formatMonthYear } from "@/lib/date";
 
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
+
 
 import type { Category } from "@/lib/categories";
 
-const COLORS = ["#22c55e", "#ef4444"];
 
 type ExpenseItem = {
   uid: string;
@@ -40,7 +33,7 @@ type ExpenseItem = {
 
 export function Home() {
   const firestore = getFirestore(appFirebase);
-  const { user } = useContext(AuthContext);
+  const { user, signOutUser } = useContext(AuthContext);
 
   const [open, setOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -120,14 +113,6 @@ export function Home() {
       .filter((e) => e.type === "EXPENSE")
       .reduce((acc, e) => acc + e.value, 0);
   }, [previousExpenses]);
-
-  const chartData = useMemo(
-    () => [
-      { name: "Receitas", value: totalIncome },
-      { name: "Despesas", value: totalExpenses },
-    ],
-    [totalIncome, totalExpenses]
-  );
 
   function getVariation(current: number, previous: number) {
     if (previous === 0) return null;
@@ -260,44 +245,6 @@ export function Home() {
           </p>
         </div>
       </div>
-
-      {/* GRÁFICO
-      <div className="px-5 mt-8">
-        <Card className="bg-white/5 border border-white/10 rounded-2xl text-white">
-          <CardContent className="p-4">
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={chartData}
-                    dataKey="value"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={70}
-                  >
-                    {chartData.map((_, i) => (
-                      <Cell key={i} fill={COLORS[i]} />
-                    ))}
-                  </Pie>
-
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#0E1627",
-                      borderRadius: "12px",
-                      border:
-                        "1px solid rgba(255,255,255,0.1)",
-                      color: "#fff",
-                    }}
-                    formatter={(v: number) =>
-                      `R$ ${v.toFixed(2)}`
-                    }
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      </div> */}
 
       {/* LISTA */}
       <div className="px-5 mt-8 space-y-3">
